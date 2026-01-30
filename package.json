@@ -42,6 +42,7 @@
   "scripts": {
     "build": "rimraf dist && rollup -c",
     "dev": "rollup -w -c rollup.config.dev.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "prepare": "npm run build"
   },
   "files": [
@@ -60,21 +61,28 @@
   },
   "devDependencies": {
     "@babel/core": "^7.28.4",
-    "@babel/preset-env": "^7.28.3",
-    "@babel/preset-react": "^7.27.1",
+    "@babel/preset-env": "^7.28.6",
+    "@babel/preset-react": "^7.28.5",
     "@rollup/plugin-babel": "^6.0.4",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-replace": "^6.0.2",
     "@rollup/plugin-terser": "^0.4.4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/react": "^19.1.12",
     "@types/three": "^0.180.0",
+    "babel-jest": "^30.2.0",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "rimraf": "^6.0.1",
     "rollup": "^4.50.0",
     "rollup-plugin-dts": "^6.2.3",
     "typescript": "^5.9.2"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=18.14"
   }
 }

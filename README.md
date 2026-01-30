@@ -267,6 +267,28 @@ Note that not all props listed below apply to all 4 components. The last 4 colum
 | <b>screen2GraphCoords</b> | (<i>x</i>, <i>y</i>[, <i>distance</i>]) | Utility method to translate viewport coordinates to the graph domain. Given a pair of `x`,`y` screen coordinates, and optionally distance from camera for 3D mode, returns the current equivalent `{x, y (, z)}` in the domain of graph node coordinates. | :heavy_check_mark: | :heavy_check_mark: | | |
 | <b>graph2ScreenCoords</b> | (<i>x</i>, <i>y</i>[, <i>z</i>]) | Utility method to translate node coordinates to the viewport domain. Given a set of `x`,`y`(,`z`) graph coordinates, returns the current equivalent `{x, y}` in viewport coordinates. | :heavy_check_mark: | :heavy_check_mark: | | |
 
+## Development
+
+### Testing
+
+The test suite uses [Jest](https://jestjs.io/) with [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/) and requires **Node.js >= 18.14** (for `--experimental-vm-modules` support needed by Jest's ESM handling).
+
+To run the tests:
+
+```bash
+npm test
+```
+
+The tests cover all four components (`ForceGraph2D`, `ForceGraph3D`, `ForceGraphVR`, `ForceGraphAR`) and verify:
+- Components mount without errors
+- Props are correctly forwarded to the underlying kapsule instances
+- Init-only props (e.g. `controlType`, `markerAttrs`) are passed as configuration options
+- Imperative methods are exposed via `ref`
+- Prop updates on re-render are propagated and unchanged props are skipped
+- PropType definitions include the correct props for each component variant
+
+The underlying force-graph libraries are mocked via `moduleNameMapper` in `jest.config.js` to avoid loading heavy WebGL/Canvas/AR/VR dependencies in the test environment.
+
 ### Input JSON syntax
 
 ```json
