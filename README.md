@@ -267,6 +267,139 @@ Note that not all props listed below apply to all 4 components. The last 4 colum
 | <b>screen2GraphCoords</b> | (<i>x</i>, <i>y</i>[, <i>distance</i>]) | Utility method to translate viewport coordinates to the graph domain. Given a pair of `x`,`y` screen coordinates, and optionally distance from camera for 3D mode, returns the current equivalent `{x, y (, z)}` in the domain of graph node coordinates. | :heavy_check_mark: | :heavy_check_mark: | | |
 | <b>graph2ScreenCoords</b> | (<i>x</i>, <i>y</i>[, <i>z</i>]) | Utility method to translate node coordinates to the viewport domain. Given a set of `x`,`y`(,`z`) graph coordinates, returns the current equivalent `{x, y}` in viewport coordinates. | :heavy_check_mark: | :heavy_check_mark: | | |
 
+## Data Loading Layer
+
+The library includes a built-in data loading layer that can fetch graph data from an API, apply filters, cache results locally, and support lazy loading of node neighbors. It is available as a Higher-Order Component (`withGraphDataLoader`) and as 4 pre-wrapped components.
+
+### Quick start
+
+```js
+import { ForceGraph2DWithLoader } from 'react-force-graph';
+// Also available: ForceGraph3DWithLoader, ForceGraphVRWithLoader, ForceGraphARWithLoader
+```
+
+```jsx
+<ForceGraph2DWithLoader
+  dataLoader={{
+    url: '/api/graph',
+    headers: { Authorization: `Bearer ${token}` }
+  }}
+  nodeColor="group"
+/>
+```
+
+Or wrap your own component using the HOC:
+
+```js
+import { withGraphDataLoader } from 'react-force-graph';
+import ForceGraph2D from 'react-force-graph-2d';
+
+const MyGraph = withGraphDataLoader(ForceGraph2D);
+```
+
+Without the `dataLoader` prop, the wrapped component behaves identically to the original (fully backwards compatible).
+
+### `dataLoader` prop
+
+| Option | Type | Default | Description |
+| --- | :--: | :--: | --- |
+| <b>url</b> | <i>string</i> or <i>func</i> | | **Required.** API endpoint URL. Can be a string or a function `(params) => string` for dynamic URLs. |
+| <b>method</b> | <i>string</i> | `'GET'` | HTTP method. `'GET'` appends filters as query params; `'POST'` sends them as JSON body. |
+| <b>headers</b> | <i>object</i> or <i>func</i> | `{}` | Request headers. Can be a static object or a function `() => object` for dynamic auth tokens. |
+| <b>buildRequest</b> | <i>func</i> | | Override the default request building. Receives `(params)` and should return a `RequestInit` object. |
+| <b>parseResponse</b> | <i>func</i> | identity | Transform the raw API response into `{ nodes, links }` format. |
+| <b>filters</b> | <i>object</i> | `{}` | Filter parameters. Changing this triggers a new fetch and clears the cache so stale data from the previous filter does not persist. |
+| <b>buildFilterParams</b> | <i>func</i> | identity | Transform the `filters` object before sending. For GET: produces query params. For POST: produces body fields. |
+| <b>expandOnNodeClick</b> | <i>bool</i> | `false` | When `true`, clicking a node fetches its neighbors and merges them into the graph. Skips nodes already expanded. |
+| <b>fetchNeighbors</b> | <i>func</i> | | Custom function `(nodeId) => Promise<{ nodes, links }>` to fetch a node's neighbors. Used with `expandOnNodeClick`. |
+| <b>pollInterval</b> | <i>number</i> | `0` | Polling interval in ms. `0` disables polling. Each poll clears the request cache to force a fresh fetch. |
+| <b>cacheOptions</b> | <i>object</i> | `{}` | Cache configuration (see below). |
+| <b>onLoadStart</b> | <i>func</i> | | Callback invoked when a fetch begins. |
+| <b>onLoadComplete</b> | <i>func</i> | | Callback `(graphData) => void` invoked after a successful fetch and merge. |
+| <b>onLoadError</b> | <i>func</i> | | Callback `(error) => void` invoked on fetch failure. |
+| <b>onDataMerge</b> | <i>func</i> | | Custom merge strategy `(existingData, incomingData) => mergedData`. By default, incoming nodes and links are merged by deduplication (union). |
+
+### `cacheOptions`
+
+| Option | Type | Default | Description |
+| --- | :--: | :--: | --- |
+| <b>maxAge</b> | <i>number</i> | `Infinity` | TTL in ms. Entries older than this are considered stale and excluded from results. |
+| <b>maxNodes</b> | <i>number</i> | `Infinity` | Maximum number of nodes in the cache. Oldest-accessed nodes are evicted first (LRU). |
+| <b>maxLinks</b> | <i>number</i> | `Infinity` | Maximum number of links in the cache. Oldest-accessed links are evicted first (LRU). |
+| <b>nodeIdField</b> | <i>string</i> | `'id'` | Node property used as the unique identifier for deduplication. |
+| <b>linkIdField</b> | <i>string</i> or <i>func</i> | `source::target` | Link identity. A function `(link) => string` or defaults to `source::target` composite key. |
+
+### Ref methods
+
+In addition to all the original ForceGraph ref methods, the wrapped components expose:
+
+| Method | Arguments | Description |
+| --- | :--: | --- |
+| <b>loadNeighbors</b> | (<i>nodeId</i>) | Programmatically fetch and merge a node's neighbors. Returns a `Promise`. |
+| <b>loadMore</b> | (<i>params</i>) | Trigger a fetch with custom parameters (e.g. `{ offset, limit }`). Returns a `Promise`. |
+| <b>clearCache</b> | *-* | Flush all cached data, neighbor tracking, and request history. Resets the graph to empty. |
+| <b>getLoadedData</b> | *-* | Returns the current cached graph as `{ nodes, links }`. |
+| <b>isLoading</b> | *-* | Returns `true` if a fetch is currently in progress. |
+| <b>getError</b> | *-* | Returns the last fetch error, or `null`. |
+
+### Examples
+
+**Filtering:**
+```jsx
+const [filters, setFilters] = useState({ department: 'engineering' });
+
+<ForceGraph2DWithLoader
+  dataLoader={{
+    url: '/api/graph',
+    filters,
+    onLoadError: (err) => console.error(err)
+  }}
+/>
+<button onClick={() => setFilters({ department: 'sales' })}>Show Sales</button>
+```
+
+**Lazy loading (expand on click):**
+```jsx
+<ForceGraph3DWithLoader
+  dataLoader={{
+    url: '/api/graph',
+    expandOnNodeClick: true,
+    fetchNeighbors: async (nodeId) => {
+      const res = await fetch(`/api/graph/neighbors/${nodeId}`);
+      return res.json(); // must return { nodes, links }
+    },
+    cacheOptions: { maxNodes: 5000, maxLinks: 10000 }
+  }}
+/>
+```
+
+**Programmatic loading via ref:**
+```jsx
+const graphRef = useRef();
+
+<ForceGraph2DWithLoader
+  ref={graphRef}
+  dataLoader={{ url: '/api/graph' }}
+/>
+<button onClick={() => graphRef.current.loadNeighbors('node-42')}>
+  Expand Node 42
+</button>
+<button onClick={() => graphRef.current.clearCache()}>Reset</button>
+```
+
+**Custom response parsing and auth:**
+```jsx
+<ForceGraph2DWithLoader
+  dataLoader={{
+    url: '/api/v2/graph',
+    method: 'POST',
+    headers: () => ({ Authorization: `Bearer ${getToken()}` }),
+    parseResponse: (res) => res.data.graph,
+    buildFilterParams: (filters) => ({ query: { match: filters } })
+  }}
+/>
+```
+
 ## Development
 
 ### Testing
