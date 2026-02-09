@@ -1,8 +1,9 @@
 import fromKapsule from 'react-kapsule';
 import ForceGraph3DKapsule from '3d-force-graph';
 import { ForceGraph3DPropTypes } from '../../forcegraph-proptypes';
+import withNodeObjectTypes from '../../node-object-types-resolver';
 
-const ForceGraph3D = fromKapsule(
+const ForceGraph3DBase = fromKapsule(
   ForceGraph3DKapsule,
   {
     methodNames: [ // bind methods
@@ -29,6 +30,7 @@ const ForceGraph3D = fromKapsule(
   }
 );
 
+const ForceGraph3D = withNodeObjectTypes(ForceGraph3DBase);
 ForceGraph3D.displayName = 'ForceGraph3D';
 ForceGraph3D.propTypes = ForceGraph3DPropTypes;
 

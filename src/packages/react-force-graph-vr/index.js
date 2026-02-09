@@ -1,8 +1,9 @@
 import fromKapsule from 'react-kapsule';
 import ForceGraphVRKapsule from '3d-force-graph-vr';
 import { ForceGraphVRPropTypes } from '../../forcegraph-proptypes';
+import withNodeObjectTypes from '../../node-object-types-resolver';
 
-const ForceGraphVR = fromKapsule(
+const ForceGraphVRBase = fromKapsule(
   ForceGraphVRKapsule,
   {
     methodNames: [ // bind methods
@@ -15,6 +16,7 @@ const ForceGraphVR = fromKapsule(
   }
 );
 
+const ForceGraphVR = withNodeObjectTypes(ForceGraphVRBase);
 ForceGraphVR.displayName = 'ForceGraphVR';
 ForceGraphVR.propTypes = ForceGraphVRPropTypes;
 

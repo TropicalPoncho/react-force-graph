@@ -32,6 +32,8 @@ type Accessor<In, Out> = Out | string | ((obj: In) => Out);
 type NodeAccessor<NodeType, T> = Accessor<NodeObject<NodeType>, T>;
 type LinkAccessor<NodeType, LinkType, T> = Accessor<LinkObject<NodeType, LinkType>, T>;
 
+export type NodeObjectTypeMap<NodeType = {}> = Record<string, (node: NodeObject<NodeType>) => Object3D>;
+
 type TooltipContent = string | React.ReactHTMLElement<HTMLElement>;
 
 type DagMode = 'td' | 'bu' | 'lr' | 'rl' | 'zout' | 'zin' | 'radialout' | 'radialin';
@@ -76,6 +78,7 @@ export interface ForceGraphProps<
   nodeResolution?: number;
   nodeThreeObject?: NodeAccessor<NodeType, Object3D>;
   nodeThreeObjectExtend?: NodeAccessor<NodeType, boolean>;
+  nodeObjectTypes?: NodeObjectTypeMap<NodeType>;
   nodePositionUpdate?: NodePositionUpdateFn | null;
 
   // Link styling

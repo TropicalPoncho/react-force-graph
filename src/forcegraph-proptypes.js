@@ -70,6 +70,7 @@ const threeBasedPropTypes = {
   nodeResolution: PropTypes.number,
   nodeThreeObject: PropTypes.oneOfType([PropTypes.object, PropTypes.string, PropTypes.func]),
   nodeThreeObjectExtend: PropTypes.oneOfType([PropTypes.bool, PropTypes.string, PropTypes.func]),
+  nodeObjectTypes: PropTypes.objectOf(PropTypes.func),
   nodePositionUpdate: PropTypes.func,
   linkOpacity: PropTypes.number,
   linkResolution: PropTypes.number,

@@ -1,0 +1,93 @@
+<head>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #legend {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(0,0,0,0.6); color: #eee;
+      font: 13px/1.5 sans-serif; padding: 10px 14px;
+      border-radius: 6px; pointer-events: none; z-index: 1;
+    }
+    .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  </style>
+
+  <script type="importmap">{ "imports": {
+    "react": "https://esm.sh/react",
+    "react-dom": "https://esm.sh/react-dom/client"
+  }}</script>
+</head>
+
+<body>
+  <div id="legend">
+    <span class="swatch" style="background:#e74c3c"></span>User<br>
+    <span class="swatch" style="background:#3498db"></span>Server<br>
+    <span class="swatch" style="background:#2ecc71"></span>Database
+  </div>
+  <div id="graph"></div>
+
+  <script src="//cdn.jsdelivr.net/npm/@babel/standalone"></script>
+  <script type="text/jsx" data-type="module">
+    import ForceGraph3D from 'https://esm.sh/react-force-graph-3d?external=react';
+    import React from 'react';
+    import { createRoot } from 'react-dom';
+    import * as THREE from 'https://esm.sh/three';
+
+    // ---------------------------------------------------------------------------
+    // Sample graph – every node declares which Three.js shape it wants via
+    // threeObjectType.  Nodes without the field fall back to the default sphere.
+    // ---------------------------------------------------------------------------
+    const graphData = {
+      nodes: [
+        { id: 'u1', label: 'Alice',      threeObjectType: 'user'     },
+        { id: 'u2', label: 'Bob',        threeObjectType: 'user'     },
+        { id: 'u3', label: 'Carol',      threeObjectType: 'user'     },
+        { id: 's1', label: 'Web-01',     threeObjectType: 'server'   },
+        { id: 's2', label: 'Web-02',     threeObjectType: 'server'   },
+        { id: 's3', label: 'Auth',       threeObjectType: 'server'   },
+        { id: 'd1', label: 'Users-DB',   threeObjectType: 'database' },
+        { id: 'd2', label: 'Sessions-DB',threeObjectType: 'database' },
+        { id: 'ext', label: 'CDN'                                    }  // no type → default sphere
+      ],
+      links: [
+        { source: 'u1', target: 's1' },
+        { source: 'u2', target: 's1' },
+        { source: 'u3', target: 's2' },
+        { source: 's1', target: 's3' },
+        { source: 's2', target: 's3' },
+        { source: 's3', target: 'd1' },
+        { source: 's1', target: 'd2' },
+        { source: 's2', target: 'd2' },
+        { source: 's1', target: 'ext' }
+      ]
+    };
+
+    // ---------------------------------------------------------------------------
+    // Registry – one factory per threeObjectType.
+    // Each factory receives the full node object and returns a THREE.Object3D.
+    // ---------------------------------------------------------------------------
+    const nodeObjectTypes = {
+      user: () => new THREE.Mesh(
+        new THREE.SphereGeometry(5, 16, 16),
+        new THREE.MeshLambertMaterial({ color: 0xe74c3c, transparent: true, opacity: 0.85 })
+      ),
+      server: () => new THREE.Mesh(
+        new THREE.BoxGeometry(10, 10, 10),
+        new THREE.MeshLambertMaterial({ color: 0x3498db, transparent: true, opacity: 0.85 })
+      ),
+      database: () => new THREE.Mesh(
+        new THREE.CylinderGeometry(4, 4, 12, 16),
+        new THREE.MeshLambertMaterial({ color: 0x2ecc71, transparent: true, opacity: 0.85 })
+      )
+    };
+
+    createRoot(document.getElementById('graph')).render(
+      <ForceGraph3D
+        graphData={graphData}
+        nodeObjectTypes={nodeObjectTypes}
+        nodeLabel="label"
+        linkColor={() => 'rgba(100,100,100,0.6)'}
+        linkDirectionalArrowLength={8}
+        linkDirectionalArrowRelPos={0.7}
+      />
+    );
+  </script>
+</body>

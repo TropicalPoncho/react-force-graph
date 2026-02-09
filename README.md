@@ -50,6 +50,7 @@ See also the [react-three-fiber component](https://github.com/vasturiano/r3f-for
 * [HTML in nodes](https://vasturiano.github.io/react-force-graph/example/html-nodes/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/html-nodes/index.html))
 * [Custom 2D node shapes](https://vasturiano.github.io/react-force-graph/example/custom-node-shape/index-canvas.html) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/custom-node-shape/index-canvas.html))
 * [Custom 3D/VR node geometries](https://vasturiano.github.io/react-force-graph/example/custom-node-shape/index-three.html) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/custom-node-shape/index-three.html))
+* [Typed node objects](https://vasturiano.github.io/react-force-graph/example/typed-node-objects/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/typed-node-objects/index.html))
 * [Curved lines and self links](https://vasturiano.github.io/react-force-graph/example/curved-links/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/curved-links/index.html))
 * [Text in links](https://vasturiano.github.io/react-force-graph/example/text-links/index-3d.html) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/text-links/index-3d.html))
 * [Highlight nodes/links](https://vasturiano.github.io/react-force-graph/example/highlight/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/highlight/index.html))
@@ -139,7 +140,52 @@ Note that not all props listed below apply to all 4 components. The last 4 colum
 | <b>nodeCanvasObjectMode</b> | <i>string</i> or <i>func</i> | `() => 'replace'` | Node object accessor function or attribute for the custom drawing mode. Use in combination with `nodeCanvasObject` to specify how to customize nodes painting. Possible values are: <ul><li>`replace`: the node is rendered using just `nodeCanvasObject`.</li><li>`before`: the node is rendered by invoking `nodeCanvasObject` and then proceeding with the default node painting.</li><li>`after`: `nodeCanvasObject` is applied after the default node painting takes place.</li></ul>Any other value will be ignored and the default drawing will be applied. | :heavy_check_mark: | | | |
 | <b>nodeThreeObject</b> | <i>Object3d</i>, <i>string</i> or <i>func</i> | *default 3D node object is a sphere, sized according to `val` and styled according to `color`.* | Node object accessor function or attribute for generating a custom 3d object to render as graph nodes. Should return an instance of [ThreeJS Object3d](https://threejs.org/docs/index.html#api/core/Object3D). If a <i>falsy</i> value is returned, the default 3d object type will be used instead for that node. | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | <b>nodeThreeObjectExtend</b> | <i>bool</i>, <i>string</i> or <i>func</i> | `false` | Node object accessor function, attribute or a boolean value for whether to replace the default node when using a custom `nodeThreeObject` (`false`) or to extend it (`true`). | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| <b>nodeObjectTypes</b> | <i>object</i> | | A registry that maps type keys to Three.js object factories: `{ [type]: (node) => Object3D }`. Each node's `threeObjectType` field is looked up in this map at render time. Nodes whose `threeObjectType` is missing or has no matching entry fall back to the default sphere. Ignored entirely when an explicit `nodeThreeObject` prop is also provided. See [Typed node objects](#typed-node-objects) below. | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | <b>nodePositionUpdate</b> | <i>func(nodeObject, coords, node)</i> | | Custom function to call for updating the position of nodes at every render iteration. It receives the respective node `ThreeJS Object3d`, the coordinates of the node (`{x,y,z}` each), and the node's `data`. If the function returns a truthy value, the regular position update function will not run for that node. | | :heavy_check_mark: | | |
+
+### Typed node objects
+
+`nodeObjectTypes` lets you declare a registry of Three.js object factories keyed by a type string, and have each node automatically use the correct one based on its own `threeObjectType` field. This is an alternative to writing a single `nodeThreeObject` function that contains all the dispatch logic internally.
+
+**Node data** – add a `threeObjectType` string to any node that should use a custom object:
+
+```json
+{ "nodes": [
+  { "id": "u1", "label": "Alice",  "threeObjectType": "user"     },
+  { "id": "s1", "label": "Web-01", "threeObjectType": "server"   },
+  { "id": "ext","label": "CDN"                                   }
+]}
+```
+
+The last node has no `threeObjectType` and will render as the default sphere.
+
+**Registry** – one factory per type. Each factory receives the full node object and must return a `THREE.Object3D`:
+
+```jsx
+import * as THREE from 'three';
+
+const nodeObjectTypes = {
+  user: (node) => new THREE.Mesh(
+    new THREE.SphereGeometry(5),
+    new THREE.MeshLambertMaterial({ color: 0xe74c3c })
+  ),
+  server: (node) => new THREE.Mesh(
+    new THREE.BoxGeometry(10, 10, 10),
+    new THREE.MeshLambertMaterial({ color: 0x3498db })
+  )
+};
+```
+
+**Usage** – pass the registry as the `nodeObjectTypes` prop:
+
+```jsx
+<ForceGraph3D
+  graphData={graphData}
+  nodeObjectTypes={nodeObjectTypes}
+/>
+```
+
+**Precedence** – if you supply both `nodeObjectTypes` and an explicit `nodeThreeObject` prop on the same component, `nodeThreeObject` wins and the registry is ignored entirely. This makes it straightforward to override the registry for a single render without removing it.
 
 ### Link styling
 
