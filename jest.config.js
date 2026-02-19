@@ -17,6 +17,7 @@ export default {
     '^force-graph$': '<rootDir>/src/__mocks__/force-graph.js',
     '^3d-force-graph$': '<rootDir>/src/__mocks__/3d-force-graph.js',
     '^3d-force-graph-vr$': '<rootDir>/src/__mocks__/3d-force-graph-vr.js',
-    '^3d-force-graph-ar$': '<rootDir>/src/__mocks__/3d-force-graph-ar.js'
+    '^3d-force-graph-ar$': '<rootDir>/src/__mocks__/3d-force-graph-ar.js',
+    '^three$': '<rootDir>/src/__mocks__/three.js'
   }
 };

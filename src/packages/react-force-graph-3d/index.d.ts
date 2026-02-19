@@ -32,7 +32,13 @@ type Accessor<In, Out> = Out | string | ((obj: In) => Out);
 type NodeAccessor<NodeType, T> = Accessor<NodeObject<NodeType>, T>;
 type LinkAccessor<NodeType, LinkType, T> = Accessor<LinkObject<NodeType, LinkType>, T>;
 
-export type NodeObjectTypeMap<NodeType = {}> = Record<string, (node: NodeObject<NodeType>) => Object3D>;
+import { NodeTypeDescriptor } from '../../node-object-definition-schema';
+
+export type NodeObjectTypeEntry<NodeType = {}> =
+  | ((node: NodeObject<NodeType>) => Object3D)
+  | NodeTypeDescriptor;
+
+export type NodeObjectTypeMap<NodeType = {}> = Record<string, NodeObjectTypeEntry<NodeType>>;
 
 type TooltipContent = string | React.ReactHTMLElement<HTMLElement>;
 

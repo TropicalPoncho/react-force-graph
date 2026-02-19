@@ -1,0 +1,155 @@
+<head>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #legend {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(0,0,0,0.6); color: #eee;
+      font: 13px/1.5 sans-serif; padding: 10px 14px;
+      border-radius: 6px; pointer-events: none; z-index: 1;
+    }
+    .swatch { display: inline-block; width: 14px; height: 14px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  </style>
+
+  <script type="importmap">{ "imports": {
+    "react": "https://esm.sh/react",
+    "react-dom": "https://esm.sh/react-dom/client"
+  }}</script>
+</head>
+
+<body>
+  <div id="legend">
+    <span class="swatch" style="background:#e74c3c"></span>User (factory fn)<br>
+    <span class="swatch" style="background:#3498db"></span>Server (descriptor: standard material)<br>
+    <span class="swatch" style="background:#2ecc71"></span>Database (descriptor: phong material)<br>
+    <span class="swatch" style="background:#f39c12"></span>Alert (descriptor: shader + animation)
+  </div>
+  <div id="graph"></div>
+
+  <script src="//cdn.jsdelivr.net/npm/@babel/standalone"></script>
+  <script type="text/jsx" data-type="module">
+    import ForceGraph3D from 'https://esm.sh/react-force-graph-3d?external=react';
+    import React from 'react';
+    import { createRoot } from 'react-dom';
+    import * as THREE from 'https://esm.sh/three';
+
+    // ---------------------------------------------------------------------------
+    // Sample graph – nodes declare their visual type via threeObjectType.
+    // Nodes without the field fall back to the default sphere.
+    // ---------------------------------------------------------------------------
+    const graphData = {
+      nodes: [
+        { id: 'u1', label: 'Alice',       threeObjectType: 'user'     },
+        { id: 'u2', label: 'Bob',         threeObjectType: 'user'     },
+        { id: 'u3', label: 'Carol',       threeObjectType: 'user'     },
+        { id: 's1', label: 'Web-01',      threeObjectType: 'server'   },
+        { id: 's2', label: 'Web-02',      threeObjectType: 'server'   },
+        { id: 's3', label: 'Auth',        threeObjectType: 'server'   },
+        { id: 'd1', label: 'Users-DB',    threeObjectType: 'database' },
+        { id: 'd2', label: 'Sessions-DB', threeObjectType: 'database' },
+        { id: 'a1', label: 'CPU Alert',   threeObjectType: 'alert'    },
+        { id: 'ext', label: 'CDN'                                     }
+      ],
+      links: [
+        { source: 'u1', target: 's1' },
+        { source: 'u2', target: 's1' },
+        { source: 'u3', target: 's2' },
+        { source: 's1', target: 's3' },
+        { source: 's2', target: 's3' },
+        { source: 's3', target: 'd1' },
+        { source: 's1', target: 'd2' },
+        { source: 's2', target: 'd2' },
+        { source: 's1', target: 'ext' },
+        { source: 'a1', target: 's1' }
+      ]
+    };
+
+    // ---------------------------------------------------------------------------
+    // Registry – mixes legacy factory functions with declarative descriptors.
+    //
+    //   Factory function:  (node) => THREE.Object3D
+    //   Descriptor object: { geometry, material, animations?, scale? }
+    //
+    // Both can coexist in the same registry.
+    // ---------------------------------------------------------------------------
+    const nodeObjectTypes = {
+      // Legacy factory function — full control via code
+      user: () => new THREE.Mesh(
+        new THREE.SphereGeometry(5, 16, 16),
+        new THREE.MeshLambertMaterial({ color: 0xe74c3c, transparent: true, opacity: 0.85 })
+      ),
+
+      // Declarative descriptor — standard material (JSON-serializable)
+      server: {
+        geometry: { type: 'box', params: { width: 10, height: 10, depth: 10 } },
+        material: {
+          type: 'standard',
+          color: '#3498db',
+          metalness: 0.6,
+          roughness: 0.3,
+          transparent: true,
+          opacity: 0.85
+        },
+        scale: 1
+      },
+
+      // Declarative descriptor — phong material with custom params
+      database: {
+        geometry: { type: 'cylinder', params: { radiusTop: 4, radiusBottom: 4, height: 12, radialSegments: 16 } },
+        material: {
+          type: 'phong',
+          color: '#2ecc71',
+          shininess: 80,
+          transparent: true,
+          opacity: 0.85
+        }
+      },
+
+      // Declarative descriptor — shader material with animated pulsing glow
+      alert: {
+        geometry: { type: 'icosahedron', params: { radius: 5, detail: 1 } },
+        material: {
+          type: 'shader',
+          vertexShader: `
+            varying vec3 vNormal;
+            void main() {
+              vNormal = normalize(normalMatrix * normal);
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform float u_time;
+            uniform float u_intensity;
+            uniform vec3 u_color;
+            varying vec3 vNormal;
+            void main() {
+              float fresnel = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
+              float pulse = 0.6 + 0.4 * sin(u_time * 4.0);
+              vec3 col = u_color * (u_intensity * pulse) + vec3(fresnel * 0.3);
+              gl_FragColor = vec4(col, 0.9);
+            }
+          `,
+          uniforms: {
+            u_intensity: { type: 'float', value: 1.0 },
+            u_color: { type: 'vec3', value: [1.0, 0.6, 0.0] }
+          },
+          transparent: true
+        },
+        animations: [
+          { uniform: 'u_intensity', from: 0.6, to: 1.4, duration: 1500, easing: 'sine', loop: 'pingPong' }
+        ],
+        scale: 1.2
+      }
+    };
+
+    createRoot(document.getElementById('graph')).render(
+      <ForceGraph3D
+        graphData={graphData}
+        nodeObjectTypes={nodeObjectTypes}
+        nodeLabel="label"
+        linkColor={() => 'rgba(100,100,100,0.6)'}
+        linkDirectionalArrowLength={8}
+        linkDirectionalArrowRelPos={0.7}
+      />
+    );
+  </script>
+</body>

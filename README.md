@@ -51,6 +51,7 @@ See also the [react-three-fiber component](https://github.com/vasturiano/r3f-for
 * [Custom 2D node shapes](https://vasturiano.github.io/react-force-graph/example/custom-node-shape/index-canvas.html) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/custom-node-shape/index-canvas.html))
 * [Custom 3D/VR node geometries](https://vasturiano.github.io/react-force-graph/example/custom-node-shape/index-three.html) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/custom-node-shape/index-three.html))
 * [Typed node objects](https://vasturiano.github.io/react-force-graph/example/typed-node-objects/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/typed-node-objects/index.html))
+* [Declarative node object definitions](https://vasturiano.github.io/react-force-graph/example/node-object-definitions/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/node-object-definitions/index.html))
 * [Curved lines and self links](https://vasturiano.github.io/react-force-graph/example/curved-links/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/curved-links/index.html))
 * [Text in links](https://vasturiano.github.io/react-force-graph/example/text-links/index-3d.html) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/text-links/index-3d.html))
 * [Highlight nodes/links](https://vasturiano.github.io/react-force-graph/example/highlight/) ([source](https://github.com/vasturiano/react-force-graph/blob/master/example/highlight/index.html))
@@ -140,7 +141,7 @@ Note that not all props listed below apply to all 4 components. The last 4 colum
 | <b>nodeCanvasObjectMode</b> | <i>string</i> or <i>func</i> | `() => 'replace'` | Node object accessor function or attribute for the custom drawing mode. Use in combination with `nodeCanvasObject` to specify how to customize nodes painting. Possible values are: <ul><li>`replace`: the node is rendered using just `nodeCanvasObject`.</li><li>`before`: the node is rendered by invoking `nodeCanvasObject` and then proceeding with the default node painting.</li><li>`after`: `nodeCanvasObject` is applied after the default node painting takes place.</li></ul>Any other value will be ignored and the default drawing will be applied. | :heavy_check_mark: | | | |
 | <b>nodeThreeObject</b> | <i>Object3d</i>, <i>string</i> or <i>func</i> | *default 3D node object is a sphere, sized according to `val` and styled according to `color`.* | Node object accessor function or attribute for generating a custom 3d object to render as graph nodes. Should return an instance of [ThreeJS Object3d](https://threejs.org/docs/index.html#api/core/Object3D). If a <i>falsy</i> value is returned, the default 3d object type will be used instead for that node. | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | <b>nodeThreeObjectExtend</b> | <i>bool</i>, <i>string</i> or <i>func</i> | `false` | Node object accessor function, attribute or a boolean value for whether to replace the default node when using a custom `nodeThreeObject` (`false`) or to extend it (`true`). | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
-| <b>nodeObjectTypes</b> | <i>object</i> | | A registry that maps type keys to Three.js object factories: `{ [type]: (node) => Object3D }`. Each node's `threeObjectType` field is looked up in this map at render time. Nodes whose `threeObjectType` is missing or has no matching entry fall back to the default sphere. Ignored entirely when an explicit `nodeThreeObject` prop is also provided. See [Typed node objects](#typed-node-objects) below. | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
+| <b>nodeObjectTypes</b> | <i>object</i> | | A registry that maps type keys to Three.js object factories or declarative node object definitions: `{ [type]: (node) => Object3D | NodeTypeDescriptor }`. Each node's `threeObjectType` field is looked up in this map at render time. Entries can be factory functions (legacy) or JSON-serializable descriptor objects with `geometry`, `material`, optional `animations`, and `scale`. Nodes whose `threeObjectType` is missing or has no matching entry fall back to the default sphere. Ignored entirely when an explicit `nodeThreeObject` prop is also provided. See [Typed node objects](#typed-node-objects) and [Declarative node object definitions](#declarative-node-object-definitions) below. | | :heavy_check_mark: | :heavy_check_mark: | :heavy_check_mark: |
 | <b>nodePositionUpdate</b> | <i>func(nodeObject, coords, node)</i> | | Custom function to call for updating the position of nodes at every render iteration. It receives the respective node `ThreeJS Object3d`, the coordinates of the node (`{x,y,z}` each), and the node's `data`. If the function returns a truthy value, the regular position update function will not run for that node. | | :heavy_check_mark: | | |
 
 ### Typed node objects
@@ -186,6 +187,119 @@ const nodeObjectTypes = {
 ```
 
 **Precedence** – if you supply both `nodeObjectTypes` and an explicit `nodeThreeObject` prop on the same component, `nodeThreeObject` wins and the registry is ignored entirely. This makes it straightforward to override the registry for a single render without removing it.
+
+### Declarative node object definitions
+
+In addition to factory functions, `nodeObjectTypes` entries can be **declarative descriptor objects** — plain JSON-serializable definitions that specify geometry, material, shaders, and animations. This format is designed to be fetched from an API.
+
+Factory functions and descriptors can coexist in the same registry. The resolver distinguishes them by type: functions are called directly; objects with a `geometry` field are compiled into Three.js meshes automatically.
+
+**Descriptor structure:**
+
+```typescript
+interface NodeTypeDescriptor {
+  geometry: {
+    type: 'sphere' | 'box' | 'cylinder' | 'cone' | 'torus' | 'plane'
+        | 'ring' | 'dodecahedron' | 'icosahedron' | 'octahedron' | 'tetrahedron';
+    params?: { /* type-specific: radius, width, height, segments, etc. */ };
+  };
+  material: StandardMaterialDescriptor | ShaderMaterialDescriptor;
+  animations?: UniformAnimationDescriptor[];  // shader material only
+  scale?: number | [number, number, number];
+}
+```
+
+**Standard materials** (`type: 'standard' | 'lambert' | 'phong' | 'basic'`):
+
+```js
+{
+  geometry: { type: 'box', params: { width: 10, height: 10, depth: 10 } },
+  material: {
+    type: 'standard',
+    color: '#3498db',
+    metalness: 0.6,
+    roughness: 0.3,
+    transparent: true,
+    opacity: 0.85
+  }
+}
+```
+
+**Shader materials** (`type: 'shader'`) with **uniform-based animations**:
+
+```js
+{
+  geometry: { type: 'icosahedron', params: { radius: 5 } },
+  material: {
+    type: 'shader',
+    vertexShader: '...GLSL code...',
+    fragmentShader: '...GLSL code...',
+    uniforms: {
+      u_intensity: { type: 'float', value: 1.0 },
+      u_color:     { type: 'vec3',  value: [1.0, 0.6, 0.0] }
+    },
+    transparent: true
+  },
+  animations: [
+    {
+      uniform: 'u_intensity',
+      from: 0.5,
+      to: 1.5,
+      duration: 2000,        // ms
+      easing: 'sine',        // linear | easeIn | easeOut | easeInOut | sine | bounce
+      loop: 'pingPong'       // once | loop | pingPong
+    }
+  ],
+  scale: 1.2
+}
+```
+
+When animations are declared, a `u_time` uniform (elapsed seconds) is automatically injected into the shader material. Animations run on a `requestAnimationFrame` loop independent of the force simulation, so they continue even after the graph layout converges.
+
+**Supported uniform types**: `float`, `int`, `vec2`, `vec3`, `vec4`, `color`.
+
+**Mixed registry example:**
+
+```jsx
+const nodeObjectTypes = {
+  // Legacy factory function
+  user: (node) => new THREE.Mesh(
+    new THREE.SphereGeometry(5),
+    new THREE.MeshLambertMaterial({ color: 0xe74c3c })
+  ),
+
+  // Declarative descriptor (API-friendly)
+  server: {
+    geometry: { type: 'box', params: { width: 10, height: 10, depth: 10 } },
+    material: { type: 'standard', color: '#3498db', metalness: 0.8 }
+  },
+
+  // Shader with animation
+  alert: {
+    geometry: { type: 'sphere', params: { radius: 3 } },
+    material: {
+      type: 'shader',
+      vertexShader: '...',
+      fragmentShader: '...',
+      uniforms: { u_glow: { type: 'float', value: 1.0 } }
+    },
+    animations: [
+      { uniform: 'u_glow', from: 0.5, to: 1.5, duration: 1000, loop: 'pingPong' }
+    ]
+  }
+};
+
+<ForceGraph3D
+  graphData={graphData}
+  nodeObjectTypes={nodeObjectTypes}
+/>
+```
+
+**TypeScript** – the schema types are fully exported:
+
+```typescript
+import type { NodeTypeDescriptor, NodeObjectTypeMap } from 'react-force-graph';
+```
 
 ### Link styling
 

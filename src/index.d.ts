@@ -3,6 +3,22 @@ export { default as ForceGraphAR } from './packages/react-force-graph-ar';
 export { default as ForceGraph3D } from './packages/react-force-graph-3d';
 export { default as ForceGraph2D } from './packages/react-force-graph-2d';
 
+// Declarative node schema types
+export {
+  NodeTypeDescriptor,
+  GeometryDescriptor,
+  GeometryType,
+  MaterialDescriptor,
+  StandardMaterialDescriptor,
+  ShaderMaterialDescriptor,
+  UniformDescriptor,
+  UniformAnimationDescriptor,
+  EasingType,
+  LoopMode,
+  NodeObjectTypeEntry,
+  NodeObjectTypeMap
+} from './node-object-definition-schema';
+
 // Data loading HOC and types
 export {
   default as withGraphDataLoader,
